@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Novel Coronavirus - 2019-2020</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"/>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/openlayers/4.6.5/ol-debug.css"/>
+		<link rel="stylesheet" href="https://ghinda.net/css-toggle-switch/dist/toggle-switch.css"/>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.0.3/nouislider.css"/>
+		
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/crossfilter/1.3.12/crossfilter.min.js"></script>
+		<script src="https://cdn.rawgit.com/openlayers/openlayers.github.io/master/en/v5.3.0/build/ol.js"></script>
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" crossorigin=""></script>
+		<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+		<script src="https://npmcdn.com/@turf/turf@5.1.6/turf.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.0.3/nouislider.js"></script>
+		
+		<style>
+		body {
+		    padding: 0;
+		    margin: 0;
+		}
+
+		html,
+		body {
+		    height: 100%;
+		    width: 100%;
+		    overflow-x: hidden;
+		}
+		
+		#map{
+			min-height:300px
+		}
+
+		#loadingLogo {
+		    position: fixed;
+		    top: 55%;
+		    right: 50%;
+		    width: 50px;
+		    height: 50px;
+		    background-color: #D12121;
+		    animation-name: spin;
+		    animation-duration: 5000ms;
+		    animation-iteration-count: infinite;
+		    animation-timing-function: linear;
+		    /* transform: rotate(3deg); */
+		    /* transform: rotate(0.3rad);/ */
+		    /* transform: rotate(3grad); */
+		    /* transform: rotate(.03turn);  */
+		}
+
+		@keyframes spin {
+		    from {
+		        transform: rotate(0deg);
+		    }
+
+		    to {
+		        transform: rotate(360deg);
+		    }
+		}
+
+		#map:hover {
+		    cursor: pointer
+		}
+
+		#map:active {
+		    cursor: grabbing
+		}
+
+		a {
+		    color: #D12121
+		}
+
+		a:hover {
+		    color: #D12121
+		}
+
+		a:visited {
+		    color: #D12121
+		}
+
+		a:active {
+		    color: #D12121
+		}
+
+		.ol-scale-line-inner {
+		    color: black !important;
+		    border: 1px solid #000;
+		    border-top: none;
+		    border-right: none;
+		    border-left: none;
+		}
+
+		.ol-scale-line {
+		    background-color: transparent !important
+		}
+
+		.overview {
+		    text-align: center
+		}
+
+		.redNumber {
+		    color: #D12121;
+		    font-size: 1.8em
+		}
+
+		.alert:hover{
+			cursor:pointer
+		}		
+		
+		#sliderContainer{
+			padding-left:53px;
+			padding-right:19px
+		}
+		
+		.noUi-connect{
+			background-color:#ddd
+		}
+		
+		
+	</style>
+	</head>
+	<body>
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-md-4">
+				<h5>
+					<div id="title">Novel
+						Coronavirus -
+						2019-2020</div>
+				</h5>
+				<small>
+					<em> Last update : <b
+							id="lastUpdate"></b></em>
+					| <em><a target="_blank"
+							href="https://docs.google.com/spreadsheets/d/18X1VM1671d99V_yd-cnUI1j8oSG2ZgfU_q1HfOizErA/edit#gid=0">Link
+							to
+							database and sources</a></em>
+				</small>
+				<hr>
+				<small><strong
+						id="overviewLocation"></strong><strong
+						id="overview">Overview</strong></small><br>
+				<div class="row overview">
+					<div class="col-md-6">
+						<strong
+							id="totalCases"
+							class="redNumber"></strong><br>
+						<small>Confirmed
+							cases<br><em></em></small>
+					</div>
+					<div class="col-md-6">
+						<strong id="deaths"
+							class="redNumber"></strong><br>
+						<small>Deaths</small>
+					</div>
+				</div>
+				<hr>
+				<small><strong
+						id="graphLocation"></strong><strong
+						id="graphTitle">Cumulative
+						number of cases per
+						day</strong></small><br><br>
+
+				<canvas
+					id="myChart"></canvas>
+				<div id="sliderContainer">
+					<div id="slider"></div>
+				</div>
+				<hr>
+				<small>
+					<ul>
+						<li>Switch between cumulative and daily cases or deaths in the parameters.</li>
+						<li>Use the slider to scroll through the days.</li>
+						<li>Click on an area to display its data.</li>
+					</ul>
+				</small>
+
+			</div>
+			<div class="col-md-6">
+				<div class="row" id="map"
+					style="width: 100%; height: 100%; position:fixed">
+				</div>
+			</div>
+			<div class="col-md-2"
+				style="background-color:white;height:100%">
+				<h5>Parameters</h5>
+
+				<label class="switch-light"
+					onclick="">
+					<input type="checkbox"
+						autocomplete="off"
+						id="checkTime">
+					<strong>
+						Time
+					</strong>
+
+					<span
+						class="alert alert-light">
+						<span>Cumulative</span>
+						<span>Daily</span>
+						<a
+							class="btn btn-sm btn-danger"></a>
+					</span>
+				</label>
+
+				<label class="switch-light"
+					onclick="">
+					<input type="checkbox"
+						autocomplete="off"
+						id="checkIndicator">
+					<strong>
+						Indicator
+					</strong>
+
+					<span
+						class="alert alert-light">
+						<span>Cases</span>
+						<span>Deaths</span>
+						<a
+							class="btn btn-sm btn-danger"></a>
+					</span>
+				</label>
+				<hr>
+				<h5>Legend</h5>
+				<small><strong
+						id="legendIndicator">Cumulative
+						cases</strong></small>
+				<svg height="100"
+					width="150">
+					<line x1="78" y1="29"
+						x2="98" y2="29"
+						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
+					<line x1="65" y1="65"
+						x2="98" y2="65"
+						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
+					<line x1="60" y1="84"
+						x2="98" y2="84"
+						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
+					<circle cx="50" cy="84"
+						r="3"
+						stroke="rgba(209, 33, 33, 1)"
+						stroke-width="1"
+						fill="rgba(209, 33, 33, 0.8)" />
+					<circle cx="50" cy="65"
+						r="11"
+						stroke="rgba(209, 33, 33, 1)"
+						stroke-width="1"
+						fill="rgba(209, 33, 33, 0.8)" />
+					<circle cx="50" cy="29"
+						r="22"
+						stroke="rgba(209, 33, 33, 1)"
+						stroke-width="1"
+						fill="rgba(209, 33, 33, 0.8)" />
+					<text id="maxValue"
+						x="102" y="32"
+						fill="black"
+						font-size="12"></text>
+					<text id="middleValue"
+						x="102" y="67"
+						fill="black"
+						font-size="12"></text>
+					<text id="minValue"
+						x="102" y="87"
+						fill="black"
+						font-size="12"></text>
+				</svg>
+				<br>
+			</div>
+		</div>
+	</div>
+	<div id="loadingLogo"></div>
+	
+<script>
+// Replace All
+String.prototype.replaceAll = function (
+  stringToFind, stringToReplace) {
+  if (stringToFind ===
+    stringToReplace)
+    return this;
+  var temp = this;
+  var index = temp.indexOf(
+    stringToFind);
+  while (index != -1) {
+    temp = temp.replace(
+      stringToFind,
+      stringToReplace);
+    index = temp.indexOf(
+      stringToFind);
+  }
+  return temp;
+};
+
+
+var spreadsheetID =
+  "18X1VM1671d99V_yd-cnUI1j8oSG2ZgfU_q1HfOizErA";
+var url =
+  "https://spreadsheets.google.com/feeds/list/" +
+  spreadsheetID +
+  "/1/public/values?alt=json";
+
+var dates = []
+var maxDate, minDate
+var maxValueCases, maxValueDeaths
+var time = "cumul"
+var indicator = "cases"
+var selectedLocation = "all"
+var cumulCasesValues = {
+  "all": []
+}
+var cumulDeathsValues = {
+  "all": []
+}
+var dailyCasesValues = {
+  "all": []
+}
+var dailyDeathsValues = {
+  "all": []
+}
+var features
+
+
+//map
+var map = new ol.Map({
+  target: "map",
+  controls: ol.control
+    .defaults({
+      attribution: false,
+      zoom: true,
+    }),
+  view: new ol.View({
+    center: ol.proj
+      .fromLonLat(
+        [-75,
+          29.86
+        ]),
+    zoom: 2,
+  })
+});
+
+var scaleLineControl = new ol.control
+  .ScaleLine();
+map.addControl(scaleLineControl)
+
+var basemap = new ol.layer.Group({
+  title: 'Background',
+  layers: [
+    new ol.layer.Tile({
+      title: "Terrain",
+      source: new ol
+        .source
+        .XYZ({
+          url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
+          crossOrigin: 'anonymous'
+        }),
+      opacity: 0.5
+    })
+  ]
+});
+map.addLayer(basemap);
+
+
+//global functions
+function propRadius(v, m) {
+  return Math.sqrt(v / m) * 22 + 2
+}
+
+var polygonLayer = new ol.layer.Vector({
+  title: "polygon",
+  source: new ol.source
+    .Vector(),
+  style: function (feature) {
+    var visible =
+      feature.get(
+        'visible')
+    if (visible ==
+      "yes") {
+      return new ol
+        .style
+        .Style({
+          fill: new ol
+            .style
+            .Fill({
+              color: 'rgba(255, 0, 0, 0.2)'
+            }),
+          stroke: new ol
+            .style
+            .Stroke({
+              color: 'rgba(255, 255, 255, 0.5)',
+              width: 0.5
+            })
+        })
+    }
+  }
+});
+
+map.addLayer(polygonLayer)
+
+var propLayer = new ol.layer.Vector({
+  title: "prop",
+  declutter: false,
+  source: new ol.source
+    .Vector(),
+  style: function (feature) {
+    var radius = 0
+    if (feature.get(
+        'value') >
+      0) {
+      radius =
+        propRadius(
+          feature
+          .get(
+            'value'
+          ),
+          maxValueCases
+        )
+    }
+    return new ol.style
+      .Style({
+        image: new ol
+          .style
+          .Circle({
+            radius: radius,
+            fill: new ol
+              .style
+              .Fill({
+                color: 'rgba(209, 33, 33, 0.8)'
+              }),
+            stroke: new ol
+              .style
+              .Stroke({
+                color: 'rgba(255, 255, 255, 0)',
+                width: 0.1
+              })
+          })
+      })
+  }
+});
+map.addLayer(propLayer)
+
+var selectLayer = new ol
+  .layer.Vector({
+    title: "select",
+    declutter: false,
+    source: new ol
+      .source
+      .Vector(),
+    style: function (
+      feature
+    ) {
+      return new ol
+        .style
+        .Style({
+          fill: new ol
+            .style
+            .Fill({
+              color: 'rgba(209, 33, 33, 0)'
+            }),
+          stroke: new ol
+            .style
+            .Stroke({
+              color: 'rgba(0,0,0,0)',
+              width: 0
+            })
+        })
+    }
+  });
+
+map.addLayer(selectLayer);
+
+function fieldToDate(key) {
+  var date = key.replace(
+    'gsx$confirmedcases', '');
+  date = date.split('-')
+  date = new Date(date[1] + "/" +
+    date[0] + "/" + date[2])
+  return date
+}
+
+function dateToField(date, field) {
+  var day = date.getDate()
+  if (day < 10) {
+    day = "0" + day
+  }
+  var month = date.getMonth()
+  month++
+  if (month < 10) {
+    month = "0" + month
+  }
+  var year = date.getYear()
+  year = year + 1900
+  return "gsx$" + field + "" + day +
+    "-" + month + "-" + year + ""
+}
+
+function formatDate(d) {
+  var day = d.getDate()
+  if (day < 10) {
+    day = "0" + day
+  }
+  var month = d.getMonth()
+  month++
+  if (month < 10) {
+    month = "0" + month
+  }
+  var year = d.getYear()
+  year = year + 1900
+  return "" + day + "-" + month +
+    "-" + year + ""
+}
+
+
+$.getJSON(url, function (data) {
+  var entry = data.feed.entry;
+  var ids = ""
+  for (var i in entry) {
+    ids = ids + "%27" + entry[i].gsx$locationid.$t + "%27%2C"
+  }
+  ids = ids.slice(0, -3);
+  var polygon_url = "https://services.arcgis.com/iQ1dY19aHwbSDYIF/arcgis/rest/services/ADM1_1km/FeatureServer/0/query?where=A1+IN+%28" +
+    ids +
+    "%29&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=A1%2CCN%2CA1N&returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=3857&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
+
+  $.getJSON(polygon_url, function (data) {
+    console.log(data)
+    polygonLayer.getSource().addFeatures(new ol.format.GeoJSON().readFeatures(data))
+    selectLayer.getSource().addFeatures(new ol.format.GeoJSON().readFeatures(data))
+
+
+    for (var i in entry) {
+      if (i == 0) {
+        var f = entry[i]
+        for (var key in f) {
+          if (key.indexOf(
+              "confirmedcases"
+            ) >=
+            0) {
+            //console.log(key)
+            dates.push(
+              fieldToDate(
+                key
+              )
+            )
+          }
+        }
+      }
+      var lat = Number(entry[
+          i]
+        .gsx$latitude.$t
+      )
+      var lon = Number(entry[
+          i]
+        .gsx$longitude
+        .$t)
+      //console.log(lon,lat)
+      var feature = turf
+        .point(new ol.proj
+          .fromLonLat([
+            lon, lat
+          ]), entry[i])
+      propLayer.getSource()
+        .addFeature(new ol
+          .format
+          .GeoJSON()
+          .readFeature(
+            feature))
+    }
+    maxDate = new Date(Math.max
+      .apply(null, dates));
+    minDate = new Date(Math.min
+      .apply(null, dates));
+    var maxValuesCases = []
+    var maxValuesDeaths = []
+    for (var i in entry) {
+      var a = entry[i]
+      var fc = dateToField(
+        maxDate,
+        "confirmedcases"
+      )
+      var fd = dateToField(
+        maxDate,
+        "deaths")
+      maxValuesCases.push(
+        Number(a[fc].$t)
+      )
+      maxValuesDeaths.push(
+        Number(a[fd].$t)
+      )
+    }
+    maxValueCases = Math.max
+      .apply(null,
+        maxValuesCases);
+    maxValueDeaths = Math.max
+      .apply(null,
+        maxValuesDeaths);
+
+    $("#maxValue").html(
+      maxValueCases)
+    $("#middleValue").html(Math
+      .round(
+        maxValueCases /
+        4))
+    $("#minValue").html(Math
+      .round(1))
+
+    features = propLayer
+      .getSource()
+      .getFeatures()
+
+
+    var datesLabels = []
+
+    for (var y in dates) {
+      cumulCasesValues.all[
+        y] = 0
+      cumulDeathsValues.all[
+        y] = 0
+      datesLabels.push(
+        formatDate(
+          dates[y]))
+      for (var i in
+          features) {
+        var f = features[i]
+        var locfield = f
+          .get(
+            "gsx$locationid"
+          )
+        var locvalue =
+          locfield.$t
+        cumulCasesValues[
+          locvalue
+        ] = []
+        cumulDeathsValues[
+          locvalue
+        ] = []
+        //setting the value for the latest date by default
+        var field =
+          dateToField(
+            maxDate,
+            "confirmedcases"
+          )
+        var value = f.get(
+          field)
+        value = value.$t
+        value = Number(
+          value)
+        features[i].set(
+          'value',
+          value)
+        //loading all the other dates for the cases
+        field = dateToField(
+          dates[y],
+          "confirmedcases"
+        )
+        var value = f.get(
+          field)
+        value = value.$t
+        value = Number(
+          value)
+        cumulCasesValues
+          .all[y] =
+          cumulCasesValues
+          .all[y] + value
+        //loading all the other dates for the deaths
+        field = dateToField(
+          dates[y],
+          "deaths")
+        var value = f.get(
+          field)
+        value = value.$t
+        value = Number(
+          value)
+        cumulDeathsValues
+          .all[y] =
+          cumulDeathsValues
+          .all[y] + value
+      }
+    }
+
+    $('#totalCases').html(
+      cumulCasesValues
+      .all[
+        cumulCasesValues
+        .all.length - 1]
+    )
+    $('#deaths').html(
+      cumulDeathsValues
+      .all[
+        cumulDeathsValues
+        .all.length - 1]
+    )
+    $('#lastUpdate').html(
+      formatDate(dates[
+        dates
+        .length - 1
+      ]))
+
+    for (var i in features) {
+      var f = features[i]
+      var locfield = f.get(
+        "gsx$locationid"
+      )
+      var locvalue = locfield
+        .$t
+      dailyCasesValues[
+        locvalue] = []
+      dailyDeathsValues[
+        locvalue] = []
+      for (var y in dates) {
+        var field =
+          dateToField(
+            dates[y],
+            "confirmedcases"
+          )
+        var value = f.get(
+          field)
+        value = value.$t
+        value = Number(
+          value)
+        cumulCasesValues[
+            locvalue]
+          .push(value)
+        var field =
+          dateToField(
+            dates[y],
+            "deaths")
+        var value = f.get(
+          field)
+        value = value.$t
+        value = Number(
+          value)
+        cumulDeathsValues[
+            locvalue]
+          .push(value)
+      }
+    }
+
+    for (var i in
+        cumulCasesValues) {
+      var v =
+        cumulCasesValues[i]
+      for (var y in v) {
+        if (y == 0) {
+
+          dailyCasesValues
+            [i].push(v[
+              y])
+        } else {
+          dailyCasesValues
+            [i].push(v[
+                y] -
+              v[y - 1]
+            )
+        }
+      }
+    }
+    for (var i in
+        cumulDeathsValues) {
+      var v =
+        cumulDeathsValues[i]
+      for (var y in v) {
+        if (y == 0) {
+
+          dailyDeathsValues
+            [i].push(v[
+              y])
+        } else {
+          dailyDeathsValues
+            [i].push(v[
+                y] -
+              v[y - 1]
+            )
+        }
+      }
+    }
+
+    var ctx = document
+      .getElementById(
+        'myChart')
+      .getContext('2d');
+    chart = new Chart(ctx, {
+      // The type of chart we want to create
+      type: 'bar',
+      // The data for our dataset
+      data: {
+        labels: datesLabels,
+        datasets: [{
+          label: 'Cumulative number of cases by day',
+          backgroundColor: 'rgba(209, 33, 33,1)',
+          borderColor: 'rgba(209, 33, 33, 1)',
+          pointRadius: 0,
+          fill: true,
+          type: 'bar',
+          data: cumulCasesValues
+            .all
+        }]
+      },
+      // Configuration options go here
+      options: {
+        legend: {
+          display: false
+        },
+        scales: {
+          xAxes: [{
+            gridLines: {
+              display: false,
+              ticks: {
+                fontSize: 3,
+                maxTicksLimit: 5,
+                autoSkip: false,
+                callback: function (
+                  tick
+                ) {
+                  return "0"
+                }
+              }
+            }
+          }]
+        },
+        tooltips: {
+          callbacks: {
+            label: function (
+              tooltipItem,
+              data
+            ) {
+              return tooltipItem
+                .value +
+                " " +
+                indicator
+            },
+            title: function (
+              tooltipItem,
+              data
+            ) {
+              var split =
+                data
+                .labels[
+                  tooltipItem[
+                    0
+                  ]
+                  .index
+                ]
+                .split(
+                  '_'
+                )
+              return (
+                split
+              )
+
+            }
+          }
+        },
+      }
+    });
+
+    var slider = document
+      .getElementById(
+        'slider');
+    noUiSlider.create(slider, {
+      start: dates
+        .length,
+      step: 1,
+      connect: [true,
+        false
+      ],
+      range: {
+        'min': 1,
+        'max': dates
+          .length
+      }
+    });
+
+    slider.noUiSlider.on(
+      'update',
+      function (values,
+        handle) {
+        var value =
+          Number(
+            values)
+        var colors = []
+        if (time ==
+          "daily") {
+          for (var i in
+              dates) {
+            if (i ==
+              value -
+              1) {
+              colors
+                .push(
+                  '#d12121'
+                )
+            } else {
+              colors
+                .push(
+                  '#F2D2D2'
+                )
+            }
+          }
+          if (indicator ==
+            "cases"
+          ) {
+            for (var i in
+                features) {
+              var id =
+                features[
+                  i
+                ]
+                .get(
+                  "gsx$locationid"
+                )
+              var values =
+                dailyCasesValues[
+                  id
+                  .$t
+                ]
+              features
+                [
+                  i
+                ]
+                .set(
+                  'value',
+                  values[
+                    value -
+                    1
+                  ]
+                )
+            }
+          } else {
+            for (var i in
+                features) {
+              var id =
+                features[
+                  i
+                ]
+                .get(
+                  "gsx$locationid"
+                )
+              var values =
+                dailyDeathsValues[
+                  id
+                  .$t
+                ]
+              features
+                [
+                  i
+                ]
+                .set(
+                  'value',
+                  values[
+                    value -
+                    1
+                  ]
+                )
+            }
+          }
+        } else if (
+          time ==
+          "cumul") {
+          for (var i in
+              dates) {
+            if (i >=
+              value
+            ) {
+              colors
+                .push(
+                  '#F2D2D2'
+                )
+            } else {
+              colors
+                .push(
+                  '#d12121'
+                )
+            }
+          }
+          var date =
+            dates[
+              value -
+              1]
+          if (indicator ==
+            "cases"
+          ) {
+            var field =
+              dateToField(
+                date,
+                "confirmedcases"
+              )
+          } else {
+            var field =
+              dateToField(
+                date,
+                "deaths"
+              )
+          }
+          for (var i in
+              features) {
+            var value =
+              features[
+                i
+              ]
+              .get(
+                field
+              )
+            value =
+              value
+              .$t
+            value =
+              Number(
+                value
+              )
+            features
+              [i]
+              .set(
+                'value',
+                value
+              )
+          }
+        }
+        chart.data
+          .datasets[0]
+          .backgroundColor =
+          colors
+        chart.update()
+        //displaying or not the background polygons
+        var polygons =
+          polygonLayer
+          .getSource()
+          .getFeatures()
+        for (var y in
+            polygons) {
+          polygons[y]
+            .set(
+              'visible',
+              "no"
+            )
+        }
+        for (var i in
+            features) {
+          var featureId =
+            features[
+              i]
+            .get(
+              "gsx$locationid"
+            )
+          featureId =
+            featureId
+            .$t
+          for (var y in
+              polygons) {
+            if (polygons[
+                y
+              ]
+              .get(
+                'A1'
+              ).toString() ==
+              featureId &&
+              features[
+                i
+              ]
+              .get(
+                'value'
+              ) >
+              0) {
+              console.log("match")
+              polygons
+                [
+                  y
+                ]
+                .set(
+                  'visible',
+                  "yes"
+                )
+            }
+          }
+        }
+
+      });
+
+
+    // select interaction
+    var selectSingleClick =
+      new ol.interaction
+      .Select({
+        layers: [
+          selectLayer
+        ],
+        style: function (
+          feature,
+          resolution
+        ) {
+          return [
+            new ol
+            .style
+            .Style({
+              fill: new ol
+                .style
+                .Fill({
+                  color: 'rgba(209, 255, 33, 0)'
+                }),
+              stroke: new ol
+                .style
+                .Stroke({
+                  color: 'rgba(255,255,102, 1)',
+                  width: 3
+                })
+            })
+          ];
+        },
+      });
+    map.addInteraction(
+      selectSingleClick);
+
+    selectSingleClick.on(
+      'select',
+      function (e) {
+        if (e.selected[
+            0]) {
+          var values =
+            e
+            .selected[
+              0]
+            .values_
+          selectedLocation
+            = values
+            .A1
+          updateGraph(
+            time,
+            indicator,
+            selectedLocation
+          )
+          $("#graphLocation")
+            .html(
+              values.CN + " - " + values
+              .A1N +
+              " - "
+            )
+          $("#overviewLocation")
+            .html(
+              values.CN + " - " + values
+              .A1N +
+              " - "
+            )
+          //console.log(cumulCasesValues)
+          var c =
+            cumulCasesValues[
+              selectedLocation
+            ]
+          var d =
+            cumulDeathsValues[
+              selectedLocation
+            ]
+          $('#totalCases')
+            .html(c[c
+              .length -
+              1
+            ])
+          $('#deaths')
+            .html(d[d
+              .length -
+              1
+            ])
+
+        } else {
+          selectedLocation
+            = "all"
+          updateGraph(
+            time,
+            indicator,
+            selectedLocation
+          )
+          $("#graphLocation")
+            .html(
+              "")
+          $("#overviewLocation")
+            .html(
+              "")
+          $('#totalCases')
+            .html(
+              cumulCasesValues
+              .all[
+                cumulCasesValues
+                .all
+                .length -
+                1
+              ]
+            )
+          $('#deaths')
+            .html(
+              cumulDeathsValues
+              .all[
+                cumulDeathsValues
+                .all
+                .length -
+                1
+              ]
+            )
+        }
+      })
+
+
+    $("#loadingLogo").hide()
+  });
+})
+
+
+// labels overlay
+var labelsLayer = new ol.layer.Group({
+  title: 'labels',
+  layers: [
+    new ol.layer.Tile({
+      title: "Labels",
+      source: new ol
+        .source
+        .XYZ({
+          url: 'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png',
+          //url: "https://stamen-tiles-a.a.ssl.fastly.net/toner-hybrid/{z}/{x}/{y}.png",
+          wrapX: true,
+          crossOrigin: 'anonymous'
+        }),
+      opacity: 1
+    })
+  ]
+});
+
+map.addLayer(labelsLayer);
+
+
+//input functions
+$('input[id="checkTime"]').change(
+  function () {
+    var check = $(this).prop(
+      'checked');
+    if (check) {
+      time = "daily"
+    } else {
+      time = "cumul"
+    }
+    updateGraph(time, indicator,
+      selectedLocation)
+  });
+$('input[id="checkIndicator"]').change(
+  function () {
+    var check = $(this).prop(
+      'checked');
+    if (check) {
+      indicator = "deaths"
+    } else {
+      indicator = "cases"
+    }
+    updateGraph(time, indicator,
+      selectedLocation)
+  });
+
+
+function updateGraph() {
+  console.log(time, indicator,
+    selectedLocation)
+  if (time == "cumul") {
+    if (indicator == "cases") {
+      chart.data.datasets[0]
+        .data =
+        cumulCasesValues[
+          selectedLocation]
+      $("#graphTitle").html(
+        "Cumulative number of cases per day"
+      )
+      $("#legendIndicator").html(
+        "Cumulative cases")
+
+    } else {
+      chart.data.datasets[0]
+        .data =
+        cumulDeathsValues[
+          selectedLocation]
+      $("#graphTitle").html(
+        "Cumulative number of deaths per day"
+      )
+      $("#legendIndicator").html(
+        "Cumulative deaths")
+    }
+    $("#sliderDaily").hide()
+    $("#sliderCumul").show()
+  } else {
+    if (indicator == "cases") {
+      chart.data.datasets[0]
+        .data =
+        dailyCasesValues[
+          selectedLocation]
+      $("#graphTitle").html(
+        "Number of new cases per day"
+      )
+      $("#legendIndicator").html(
+        "Daily new cases")
+    } else {
+      chart.data.datasets[0]
+        .data =
+        dailyDeathsValues[
+          selectedLocation]
+      $("#graphTitle").html(
+        "Number of new deaths per day"
+      )
+      $("#legendIndicator").html(
+        "Daily new deaths")
+    }
+    $("#sliderCumul").hide()
+    $("#sliderDaily").show()
+  }
+  chart.update();
+  slider.noUiSlider.set(slider
+    .noUiSlider.get()
+  ) // to trigger the update of the slider
+}
+</script>
+</body>
+</html>
+
