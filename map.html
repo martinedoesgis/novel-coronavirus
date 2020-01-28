@@ -172,9 +172,10 @@
 				<hr>
 				<small>
 					<ul>
-						<li>Switch between cumulative and daily cases or deaths in the parameters.</li>
+						<li>Switch between city or regions, cumulative or daily and cases or deaths in the parameters.</li>
+						<li>Data for cities only for China (world data coming soon). Starts on 23/01 for Beijing, and on 26/01 for Shanghai and Tianjin districts. No details for Taiwan.</li>
 						<li>Use the slider to scroll through the days.</li>
-						<li>Click on an area to display its data.</li>
+						<li>Click on a region to display its data (coming soon for cities).</li>
 					</ul>
 				</small>
 
@@ -187,7 +188,23 @@
 			<div class="col-md-2"
 				style="background-color:white;height:100%">
 				<h5>Parameters</h5>
+				<label class="switch-light"
+					onclick="">
+					<input type="checkbox"
+						autocomplete="off"
+						id="checkScale">
+					<strong>
+						Scale
+					</strong>
 
+					<span
+						class="alert alert-light">
+						<span>Cities</span>
+						<span>Regions</span>
+						<a
+							class="btn btn-sm btn-danger"></a>
+					</span>
+				</label>
 				<label class="switch-light"
 					onclick="">
 					<input type="checkbox"
@@ -205,7 +222,6 @@
 							class="btn btn-sm btn-danger"></a>
 					</span>
 				</label>
-
 				<label class="switch-light"
 					onclick="">
 					<input type="checkbox"
@@ -228,29 +244,29 @@
 				<small><strong
 						id="legendIndicator">Cumulative
 						cases</strong></small>
-				<svg height="100"
+				<svg height="120"
 					width="150">
 					<line x1="78" y1="29"
 						x2="98" y2="29"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<line x1="65" y1="65"
-						x2="98" y2="65"
+					<line x1="65" y1="79"
+						x2="98" y2="79"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<line x1="60" y1="84"
-						x2="98" y2="84"
+					<line x1="60" y1="103"
+						x2="98" y2="103"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<circle cx="50" cy="84"
-						r="3"
+					<circle cx="50" cy="103"
+						r="7"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
-					<circle cx="50" cy="65"
-						r="11"
+					<circle cx="50" cy="79"
+						r="15"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
-					<circle cx="50" cy="29"
-						r="22"
+					<circle cx="50" cy="32"
+						r="30"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
@@ -259,11 +275,11 @@
 						fill="black"
 						font-size="12"></text>
 					<text id="middleValue"
-						x="102" y="67"
+						x="102" y="82"
 						fill="black"
 						font-size="12"></text>
 					<text id="minValue"
-						x="102" y="87"
+						x="102" y="106"
 						fill="black"
 						font-size="12"></text>
 				</svg>
@@ -300,10 +316,22 @@ var url =
   "https://spreadsheets.google.com/feeds/list/" +
   spreadsheetID +
   "/1/public/values?alt=json";
+  
+var url_chineseCities =
+  "https://spreadsheets.google.com/feeds/list/" +
+  spreadsheetID +
+  "/3/public/values?alt=json";
+  
+  var url_chineseCitiesHistorical =
+  "https://spreadsheets.google.com/feeds/list/" +
+  spreadsheetID +
+  "/4/public/values?alt=json";
 
 var dates = []
 var maxDate, minDate
 var maxValueCases, maxValueDeaths
+var maxValueCasesCities = 700
+var maxValueDeathsCities = 63
 var time = "cumul"
 var indicator = "cases"
 var selectedLocation = "all"
@@ -319,7 +347,7 @@ var dailyCasesValues = {
 var dailyDeathsValues = {
   "all": []
 }
-var features
+var features,featuresCities
 
 
 //map
@@ -355,7 +383,7 @@ var basemap = new ol.layer.Group({
           url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
           crossOrigin: 'anonymous'
         }),
-      opacity: 0.5
+      opacity: 1
     })
   ]
 });
@@ -364,7 +392,7 @@ map.addLayer(basemap);
 
 //global functions
 function propRadius(v, m) {
-  return Math.sqrt(v / m) * 22 + 2
+  return Math.sqrt(v / m) * 30
 }
 
 var polygonLayer = new ol.layer.Vector({
@@ -388,7 +416,7 @@ var polygonLayer = new ol.layer.Vector({
           stroke: new ol
             .style
             .Stroke({
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: 'rgba(255, 255, 255, 0.9)',
               width: 0.5
             })
         })
@@ -439,6 +467,48 @@ var propLayer = new ol.layer.Vector({
   }
 });
 map.addLayer(propLayer)
+
+var citiesLayer = new ol.layer.Vector({
+  title: "cities",
+  declutter: false,
+  source: new ol.source.Vector(),
+  style: function (feature) {
+    var radius = 0
+    if (feature.get(
+        'value') >
+      0) {
+      radius =
+        propRadius(
+          feature
+          .get(
+            'value'
+          ),
+          maxValueCasesCities
+        )
+    }
+    return new ol.style
+      .Style({
+        image: new ol
+          .style
+          .Circle({
+            radius: radius,
+            fill: new ol
+              .style
+              .Fill({
+                color: 'rgba(209, 33, 33, 0.8)'
+              }),
+            stroke: new ol
+              .style
+              .Stroke({
+                color: 'rgba(255, 255, 255, 0)',
+                width: 0.1
+              })
+          })
+      })
+  }
+  
+});
+map.addLayer(citiesLayer)
 
 var selectLayer = new ol
   .layer.Vector({
@@ -524,11 +594,11 @@ $.getJSON(url, function (data) {
     "%29&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=A1%2CCN%2CA1N&returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=3857&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
 
   $.getJSON(polygon_url, function (data) {
-    console.log(data)
     polygonLayer.getSource().addFeatures(new ol.format.GeoJSON().readFeatures(data))
     selectLayer.getSource().addFeatures(new ol.format.GeoJSON().readFeatures(data))
 
-
+	$.getJSON(url_chineseCities, function (city_cn) {
+	
     for (var i in entry) {
       if (i == 0) {
         var f = entry[i]
@@ -596,19 +666,11 @@ $.getJSON(url, function (data) {
       .apply(null,
         maxValuesDeaths);
 
-    $("#maxValue").html(
-      maxValueCases)
-    $("#middleValue").html(Math
-      .round(
-        maxValueCases /
-        4))
-    $("#minValue").html(Math
-      .round(1))
-
     features = propLayer
       .getSource()
       .getFeatures()
 
+	
 
     var datesLabels = []
 
@@ -678,6 +740,62 @@ $.getJSON(url, function (data) {
           .all[y] + value
       }
     }
+	
+	// cities
+	
+	$.getJSON(url_chineseCitiesHistorical, function (city_cn_hist) {
+	
+	var cities_cn = city_cn.feed.entry
+	
+	var city_hist = city_cn_hist.feed.entry
+	
+	var cities = []
+	
+	
+	for (var i in cities_cn){
+		for (var y in city_hist){
+			var ncp = cities_cn[i].gsx$provinceen.$t
+			var ocp = city_hist[y].gsx$provinceen.$t
+			var ncn = cities_cn[i].gsx$cityen.$t
+			var ocn = city_hist[y].gsx$cityen.$t
+			if ( ncp == ocp && ncn == ocn){
+				var item  = cities_cn[i]
+				var item2 = city_hist[y]
+				item = Object.assign(item2, item);
+				cities.push(item)
+			}
+		}
+	}
+	
+	console.log(cities)
+
+	
+	var maxValuesCasesCities = []
+
+	for (var i in cities) {
+      var lat = Number(cities[i].gsx$latitude.$t)
+      var lon = Number(cities[i].gsx$longitude.$t)
+      var feature = new ol.format.GeoJSON().readFeature(turf.point(new ol.proj.fromLonLat([lon, lat]), cities[i]))
+	  var field = dateToField(maxDate,"confirmedcases")
+	  feature.set('value',Number(feature.get(field).$t))
+	  maxValuesCasesCities.push(Number(feature.get(field).$t))
+      citiesLayer.getSource().addFeature(feature)
+    }
+	
+	maxValueCasesCities = Math.max
+      .apply(null,
+        maxValuesCasesCities);
+
+	$("#maxValue").html(
+      maxValueCasesCities)
+    $("#middleValue").html(Math
+      .round(
+        maxValueCasesCities /
+        4))
+    $("#minValue").html(Math
+      .round(maxValueCasesCities /
+        16))
+	
 
     $('#totalCases').html(
       cumulCasesValues
@@ -872,6 +990,69 @@ $.getJSON(url, function (data) {
       }
     });
 
+	function updateCityMap(value){
+	var featuresCities = citiesLayer.getSource().getFeatures()
+	console.log("cities:" +time, indicator,value)
+	var date = dates[value-1];
+	var dateYesterday = dates[value-2]
+	if (time == "daily"){
+		if (indicator == "cases"){
+			var fieldNow = dateToField(date,"confirmedcases")
+			var fieldYesterday = dateToField(dateYesterday,"confirmedcases")
+			for (var i in featuresCities){
+				if(featuresCities[i].getProperties()[fieldNow] && featuresCities[i].getProperties()[fieldYesterday]){
+					var fieldValue = Number(featuresCities[i].get(fieldNow).$t)-Number(featuresCities[i].get(fieldYesterday).$t)
+					featuresCities[i].set('value',fieldValue)
+				}	
+				else{
+					featuresCities[i].set('value',0)
+				}
+			}
+		}
+		else if (indicator == "deaths"){
+			var fieldNow = dateToField(date,"deaths")
+			var fieldYesterday = dateToField(dateYesterday,"deaths")
+			for (var i in featuresCities){
+				if(featuresCities[i].getProperties()[fieldNow] && featuresCities[i].getProperties()[fieldYesterday]){
+					var fieldValue = Number(featuresCities[i].get(fieldNow).$t)-Number(featuresCities[i].get(fieldYesterday).$t)
+					featuresCities[i].set('value',fieldValue)
+				}	
+				else{
+					featuresCities[i].set('value',0)
+				}
+			}
+		}
+	}
+	else if (time == "cumul"){
+		if (indicator == "cases"){
+			var field = dateToField(date,"confirmedcases")
+			for (var i in featuresCities){
+				if(featuresCities[i].getProperties()[field]){
+					var fieldValue = Number(featuresCities[i].get(field).$t)
+					featuresCities[i].set('value',fieldValue)
+				}	
+				else{
+					featuresCities[i].set('value',0)
+				}
+			}
+		}
+		else if (indicator == "deaths"){
+			var field = dateToField(date,"deaths")
+			for (var i in featuresCities){
+				if(featuresCities[i].getProperties()[field]){
+					var fieldValue = Number(featuresCities[i].get(field).$t)
+					featuresCities[i].set('value',fieldValue)
+				}	
+				else{
+					featuresCities[i].set('value',0)
+				}
+			}
+		}
+	}
+	
+}
+
+
     slider.noUiSlider.on(
       'update',
       function (values,
@@ -879,6 +1060,7 @@ $.getJSON(url, function (data) {
         var value =
           Number(
             values)
+		updateCityMap(value)
         var colors = []
         if (time ==
           "daily") {
@@ -1062,7 +1244,7 @@ $.getJSON(url, function (data) {
                 'value'
               ) >
               0) {
-              console.log("match")
+             
               polygons
                 [
                   y
@@ -1202,7 +1384,30 @@ $.getJSON(url, function (data) {
     $("#loadingLogo").hide()
   });
 })
+})
+})
 
+
+// lines overlay
+var linesLayer = new ol.layer.Group({
+  title: 'labels',
+  layers: [
+    new ol.layer.Tile({
+      title: "Labels",
+      source: new ol
+        .source
+        .XYZ({
+          //url: 'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png',
+          url: "https://stamen-tiles-a.a.ssl.fastly.net/toner-lines/{z}/{x}/{y}.png",
+          wrapX: true,
+          crossOrigin: 'anonymous'
+        }),
+      opacity: 0.1
+    })
+  ]
+});
+
+map.addLayer(linesLayer);
 
 // labels overlay
 var labelsLayer = new ol.layer.Group({
@@ -1214,11 +1419,11 @@ var labelsLayer = new ol.layer.Group({
         .source
         .XYZ({
           url: 'https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png',
-          //url: "https://stamen-tiles-a.a.ssl.fastly.net/toner-hybrid/{z}/{x}/{y}.png",
+          //url: "https://stamen-tiles-a.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png",
           wrapX: true,
           crossOrigin: 'anonymous'
         }),
-      opacity: 1
+      opacity: 0.7
     })
   ]
 });
@@ -1251,11 +1456,44 @@ $('input[id="checkIndicator"]').change(
     updateGraph(time, indicator,
       selectedLocation)
   });
+$('input[id="checkScale"]').change(
+  function () {
+    var check = $(this).prop(
+      'checked');
+    if (check) {
+      propLayer.setVisible(true)
+	  polygonLayer.setVisible(true)
+	  selectLayer.setVisible(true)
+	  citiesLayer.setVisible(false)
+		  $("#maxValue").html(
+		  maxValueCases)
+		$("#middleValue").html(Math
+		  .round(
+			maxValueCases /
+			4))
+		$("#minValue").html(Math
+		  .round(maxValueCases /
+			16))
+    } else {
+      propLayer.setVisible(false)
+	  polygonLayer.setVisible(false)
+	  selectLayer.setVisible(false)
+	  citiesLayer.setVisible(true)
+		  $("#maxValue").html(
+		  maxValueCasesCities)
+		$("#middleValue").html(Math
+		  .round(
+			maxValueCasesCities /
+			4))
+		$("#minValue").html(Math
+		  .round(maxValueCasesCities /
+			16))
+    }
+  });
+
 
 
 function updateGraph() {
-  console.log(time, indicator,
-    selectedLocation)
   if (time == "cumul") {
     if (indicator == "cases") {
       chart.data.datasets[0]
@@ -1311,6 +1549,12 @@ function updateGraph() {
     .noUiSlider.get()
   ) // to trigger the update of the slider
 }
+
+
+
+propLayer.setVisible(false)
+polygonLayer.setVisible(false)
+selectLayer.setVisible(false)
 </script>
 </body>
 </html>
