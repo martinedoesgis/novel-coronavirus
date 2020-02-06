@@ -18,20 +18,24 @@
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/14.0.3/nouislider.js"></script>
 		
 		<style>
-		body {
-		    padding: 0;
-		    margin: 0;
+		
+		#mapcol{
+			padding-right:0px ;
 		}
-
-		html,
-		body {
-		    height: 100%;
-		    width: 100%;
-		    overflow-x: hidden;
+		#rightcol{
+			margin-left:0px ;
+		}
+		#map{
+			min-height:300px;
+			height: 100vh;
+			margin-left:0px;
+			margin-right:0px
 		}
 		
-		#map{
-			min-height:300px
+		@media only screen and (max-width: 768px) {
+		  #map {
+			height:300px
+		  }
 		}
 
 		#loadingLogo {
@@ -120,6 +124,8 @@
 		}
 		
 		
+		
+		
 	</style>
 	</head>
 	<body>
@@ -173,19 +179,19 @@
 				<small>
 					<ul>
 						<li>Switch between city or regions, cumulative or daily and cases or deaths in the parameters.</li>
-						<li>Data for cities only for China (world data coming soon). Starts on 23/01 for Beijing, and on 26/01 for Shanghai and Tianjin districts. No details for Taiwan.</li>
 						<li>Use the slider to scroll through the days.</li>
-						<li>Click on a region to display its data (coming soon for cities).</li>
+						<li>Data for cities: starts on 23/01 for Beijing, and on 26/01 for Shanghai and Tianjin districts. No details for Taiwan.</li>
+						<li>Coordinates of chinese cities from batch geocoding, errors might occur.</li>
 					</ul>
 				</small>
 
 			</div>
-			<div class="col-md-6">
+			<div id="mapcol" class="col-md-6">
 				<div class="row" id="map"
-					style="width: 100%; height: 100%; position:fixed">
+					style="width: 100%">
 				</div>
 			</div>
-			<div class="col-md-2"
+			<div id="rightcol" class="col-md-2"
 				style="background-color:white;height:100%">
 				<h5>Parameters</h5>
 				<label class="switch-light"
@@ -244,42 +250,42 @@
 				<small><strong
 						id="legendIndicator">Cumulative
 						cases</strong></small>
-				<svg height="120"
+				<svg height="300"
 					width="150">
-					<line x1="78" y1="29"
-						x2="98" y2="29"
+					<line x1="102" y1="52"
+						x2="106" y2="52"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<line x1="65" y1="79"
-						x2="98" y2="79"
+					<line x1="80" y1="128"
+						x2="106" y2="128"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<line x1="60" y1="103"
-						x2="98" y2="103"
+					<line x1="66" y1="166"
+						x2="106" y2="166"
 						style="stroke:rgba(0,0,0,0.2);stroke-width:1" />
-					<circle cx="50" cy="103"
-						r="7"
+					<circle cx="52" cy="166"
+						r="12"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
-					<circle cx="50" cy="79"
-						r="15"
+					<circle cx="52" cy="128"
+						r="25"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
-					<circle cx="50" cy="32"
-						r="30"
+					<circle cx="52" cy="52"
+						r="50"
 						stroke="rgba(209, 33, 33, 1)"
 						stroke-width="1"
 						fill="rgba(209, 33, 33, 0.8)" />
 					<text id="maxValue"
-						x="102" y="32"
+						x="110" y="55"
 						fill="black"
 						font-size="12"></text>
 					<text id="middleValue"
-						x="102" y="82"
+						x="110" y="131"
 						fill="black"
 						font-size="12"></text>
 					<text id="minValue"
-						x="102" y="106"
+						x="110" y="169"
 						fill="black"
 						font-size="12"></text>
 				</svg>
@@ -326,6 +332,11 @@ var url_chineseCities =
   "https://spreadsheets.google.com/feeds/list/" +
   spreadsheetID +
   "/4/public/values?alt=json";
+  
+  var url_wrlCities =
+  "https://spreadsheets.google.com/feeds/list/" +
+  spreadsheetID +
+  "/5/public/values?alt=json";
 
 var dates = []
 var maxDate, minDate
@@ -361,10 +372,10 @@ var map = new ol.Map({
   view: new ol.View({
     center: ol.proj
       .fromLonLat(
-        [-75,
-          29.86
+        [101.99,
+          33.84
         ]),
-    zoom: 2,
+    zoom: 4,
   })
 });
 
@@ -381,6 +392,7 @@ var basemap = new ol.layer.Group({
         .source
         .XYZ({
           url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png',
+		  //url: ' http://tile.casa.ucl.ac.uk/duncan/WorldPopDen2015b/{z}/{x}/{y}.png',
           crossOrigin: 'anonymous'
         }),
       opacity: 1
@@ -390,9 +402,10 @@ var basemap = new ol.layer.Group({
 map.addLayer(basemap);
 
 
+
 //global functions
 function propRadius(v, m) {
-  return Math.sqrt(v / m) * 30
+  return Math.sqrt(v / m) * 50
 }
 
 var polygonLayer = new ol.layer.Vector({
@@ -411,13 +424,13 @@ var polygonLayer = new ol.layer.Vector({
           fill: new ol
             .style
             .Fill({
-              color: 'rgba(255, 0, 0, 0.2)'
+              color: 'rgba(223, 53, 53, 0.1)'
             }),
           stroke: new ol
             .style
             .Stroke({
-              color: 'rgba(255, 255, 255, 0.9)',
-              width: 0.5
+              color: 'rgba(209, 33, 33, 0.9)',
+              width: 1
             })
         })
     }
@@ -433,6 +446,7 @@ var propLayer = new ol.layer.Vector({
     .Vector(),
   style: function (feature) {
     var radius = 0
+	var outlineOpacity = 0
     if (feature.get(
         'value') >
       0) {
@@ -444,6 +458,7 @@ var propLayer = new ol.layer.Vector({
           ),
           maxValueCases
         )
+		outlineOpacity = 0.9
     }
     return new ol.style
       .Style({
@@ -454,13 +469,13 @@ var propLayer = new ol.layer.Vector({
             fill: new ol
               .style
               .Fill({
-                color: 'rgba(209, 33, 33, 0.8)'
+                color: 'rgba(209, 33, 33, 0.7)'
               }),
             stroke: new ol
               .style
               .Stroke({
-                color: 'rgba(255, 255, 255, 0)',
-                width: 0.1
+                color: 'rgba(209, 33, 33, '+outlineOpacity+')',
+                width: 1
               })
           })
       })
@@ -474,6 +489,7 @@ var citiesLayer = new ol.layer.Vector({
   source: new ol.source.Vector(),
   style: function (feature) {
     var radius = 0
+	var outlineOpacity = 0
     if (feature.get(
         'value') >
       0) {
@@ -485,6 +501,7 @@ var citiesLayer = new ol.layer.Vector({
           ),
           maxValueCasesCities
         )
+		outlineOpacity = 1
     }
     return new ol.style
       .Style({
@@ -495,13 +512,13 @@ var citiesLayer = new ol.layer.Vector({
             fill: new ol
               .style
               .Fill({
-                color: 'rgba(209, 33, 33, 0.8)'
+                color: 'rgba(209, 33, 33, 0.7)'
               }),
             stroke: new ol
               .style
               .Stroke({
-                color: 'rgba(255, 255, 255, 0)',
-                width: 0.1
+                color: 'rgba(209, 33, 33, '+outlineOpacity+')',
+                width: 1
               })
           })
       })
@@ -509,6 +526,20 @@ var citiesLayer = new ol.layer.Vector({
   
 });
 map.addLayer(citiesLayer)
+
+//blending
+var setBlendModeFromSelect = function(evt) {
+  evt.context.globalCompositeOperation = 'multiply';
+};
+var resetBlendModeFromSelect = function(evt) {
+  evt.context.globalCompositeOperation = 'source-over';
+};
+var bindLayerListeners = function(layer) {
+  layer.on('precompose', setBlendModeFromSelect);
+  layer.on('postcompose', resetBlendModeFromSelect);
+};
+bindLayerListeners(citiesLayer);
+bindLayerListeners(propLayer);
 
 var selectLayer = new ol
   .layer.Vector({
@@ -745,9 +776,13 @@ $.getJSON(url, function (data) {
 	
 	$.getJSON(url_chineseCitiesHistorical, function (city_cn_hist) {
 	
+	$.getJSON(url_wrlCities, function (city_wrl) {
+	
 	var cities_cn = city_cn.feed.entry
 	
 	var city_hist = city_cn_hist.feed.entry
+	
+	var cities_wrl = city_wrl.feed.entry
 	
 	var cities = []
 	
@@ -767,7 +802,10 @@ $.getJSON(url, function (data) {
 		}
 	}
 	
-	console.log(cities)
+	for (var i in cities_wrl){
+		cities.push(cities_wrl[i])
+	}
+	
 
 	
 	var maxValuesCasesCities = []
@@ -1048,8 +1086,7 @@ $.getJSON(url, function (data) {
 				}
 			}
 		}
-	}
-	
+	}	
 }
 
 
@@ -1253,6 +1290,8 @@ $.getJSON(url, function (data) {
                   'visible',
                   "yes"
                 )
+				//
+			
             }
           }
         }
@@ -1386,7 +1425,7 @@ $.getJSON(url, function (data) {
 })
 })
 })
-
+})
 
 // lines overlay
 var linesLayer = new ol.layer.Group({
@@ -1549,6 +1588,7 @@ function updateGraph() {
     .noUiSlider.get()
   ) // to trigger the update of the slider
 }
+
 
 
 
